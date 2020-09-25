@@ -33,13 +33,10 @@ def messageDecoder(client, userdata, msg):
 	else:
 		print("Unknown message: {}".format(message))
 
-def button_callback_rising(channel):
-   print("Button released")
-   mqttClient.publish("rpi/gpio", "buttonReleased")
+def button_callback(channel):
+   print("Button pressed")
+   mqttClient.publish("rpi/gpio", "buttonPressed")
 
-def button_callback_falling(channel):
-	print("Button pushed")
-	mqttClient.publish("rpi/gpio", "buttonPressed")
 
 # Set up RPI GPIO pins
 gpioSetup()
@@ -56,8 +53,7 @@ mqttClient.on_message = messageDecoder
 
 # Set up button
 gpio.setup(15, gpio.IN, pull_up_down=gpio.PUD_DOWN) # Set pin 15 to be an input pin and set initial value to be pulled low (off)
-gpio.add_event_detect(15,gpio.RISING,callback=button_callback_rising) # Setup event on pin 15 rising edge
-gpio.add_event_detect(15, gpio.FALLING,callback=button_callback_falling)
+gpio.add_event_detect(15,gpio.RISING,callback=button_callback) # Setup event on pin 15 rising edge
 
 # connect client to server
 mqttClient.connect(serverAddress)
