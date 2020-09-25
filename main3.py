@@ -24,17 +24,15 @@ def messageDecoder(client, userdata, msg):
 	# Decode message from topic
 	message = msg.payload.decode(encoding='UTF-8')
 	
-	# Set GPIO pin to blink 1000 times whenever "on" message received
-	if message == "on":
-		"""
-		x = 1000
-		while True:	
-			gpio.output(21,gpio.HIGH)
-			time.sleep(1)
+	if message == "toggleLED":
+		print("toggleLED, swapping LED state")
+		if gpio.input(21):
 			gpio.output(21,gpio.LOW)
-			time.sleep(1)
-			x -= 1
-		"""
+			mqttClient.publish("rpi/gpio", "switchOn")
+		else:
+			gpio.output(21,gpio.HIGH)
+			mqttClient.publish("rpi/gpio", "switchOff")
+	if message == "on":
 		gpio.output(21, gpio.HIGH)
 		print("set pin 21 (LED) to ON")
 	elif message == "off":
