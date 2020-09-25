@@ -3,6 +3,7 @@
 
 import paho.mqtt.client as mqtt
 import RPi.GPIO as gpio
+import time
 
 def gpioSetup():
 	
@@ -23,13 +24,22 @@ def messageDecoder(client, userdata, msg):
 	# Decode message from topic
 	message = msg.payload.decode(encoding='UTF-8')
 	
-	# Set GPIO pin to HIGH or LOW
+	# Set GPIO pin to blink 1000 times whenever "on" message received
 	if message == "on":
+		"""
+		x = 1000
+		while True:	
+			gpio.output(21,gpio.HIGH)
+			time.sleep(1)
+			gpio.output(21,gpio.LOW)
+			time.sleep(1)
+			x -= 1
+		"""
 		gpio.output(21, gpio.HIGH)
-		print("LED is ON!")
+		print("set pin 21 (LED) to ON")
 	elif message == "off":
-		gpio.output(21, gpio.LOW)
-		print("LED is OFF!")
+		gpio.output(21,gpio.LOW)
+		print("set pin 21 (LED) to OFF")
 	else:
 		print("Unknown message: {}".format(message))
 
