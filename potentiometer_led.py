@@ -85,5 +85,10 @@ if __name__ == "__main__":
         print("trim_pot:", trim_pot)
         print("normalized: ", round(trim_pot / 1024.0, 2))
         # display with LED in 100 steps
-        pwm_LED.ChangeDutyCycle(int(trim_pot/10.2))
+        trimmed_val = int(trim_pot/10.2)
+        if trimmed_val < 0: 
+                trimmed_val *= -1
+        if trimmed_val > 100: 
+                trimmed_val %= 100
+        pwm_LED.ChangeDutyCycle(trimmed_val)
         time.sleep(0.5)
