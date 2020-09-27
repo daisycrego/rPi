@@ -119,5 +119,5 @@ while True:
     if trimmed_val > 100: 
             trimmed_val %= 100
     pwm_LED.ChangeDutyCycle(trimmed_val)
-    mqqtClient.publish("rpi/gpio", trimmed_val)
+    mqqtClient.publish("rpi/ios", trimmed_val)
     time.sleep(0.5)
