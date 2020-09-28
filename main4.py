@@ -1,5 +1,3 @@
-# control LED with potentiometer, through Swift app messages
-
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
@@ -85,10 +83,15 @@ def messageDecoder(client, userdata, msg):
 	# Decode message from topic
 	message = msg.payload.decode(encoding='UTF-8')
 	
-	current_adc = int(message)
-	print("setting ADC to " + current_adc)
-	gpio.output(LED,gpio.HIGH)
-
+	if message == "poll":
+		current_adc = readadc(potentiometer_adc, SPICLK, SPIMOSI, SPIMISO, SPICS)
+		trimmed_val = int(trim_pot/10.2)
+		if trimmed_val < 0: 
+			trimmed_val *= -1
+		if trimmed_val > 100: 
+			trimmed_val %= 100
+		mqqtClient.publish("rpi/ios", trimmed_val)
+		pwm_LED.ChangeDutyCycle(trimmed_val)
 
 gpioSetup()
 
@@ -107,17 +110,3 @@ mqttClient.connect(serverAddress)
 
 # monitor client activity forever
 mqttClient.loop_forever()
-
-while True:
-    trim_pot = readadc(potentiometer_adc, SPICLK, SPIMOSI, SPIMISO, SPICS)
-    print("trim_pot:", trim_pot)
-    print("normalized: ", round(trim_pot / 1024.0, 2))
-    # display with LED in 100 steps
-    trimmed_val = int(trim_pot/10.2)
-    if trimmed_val < 0: 
-            trimmed_val *= -1
-    if trimmed_val > 100: 
-            trimmed_val %= 100
-    pwm_LED.ChangeDutyCycle(trimmed_val)
-    mqqtClient.publish("rpi/ios", trimmed_val)
-    time.sleep(0.5)
