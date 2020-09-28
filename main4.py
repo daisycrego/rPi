@@ -9,25 +9,24 @@ from time import sleep
 # init LED pwm
 LED = 17 
 
-def gpioSetup():
 	
-	# set pin numbering to broadcom scheme
-	gpio.setmode(gpio.BCM)
-	
-	gpio.setup(LED, gpio.OUT)
+# set pin numbering to broadcom scheme
+gpio.setmode(gpio.BCM)
 
-	pwm_LED = gpio.PWM(LED, 100)
-	pwm_LED.start(0)
+gpio.setup(LED, gpio.OUT)
 
-	# freely chosen SPI pins
-	SPICLK = 16  # BOARD 36
-	SPIMISO = 19  # BOARD 35
-	SPIMOSI = 20  # BOARD 38
-	SPICS = 25  # BOARD 22
-	 
-	# set up the SPI interface pins
-	gpio.setup([SPIMOSI, SPICLK, SPICS], gpio.OUT)
-	gpio.setup(SPIMISO, gpio.IN)
+pwm_LED = gpio.PWM(LED, 100)
+pwm_LED.start(0)
+
+# freely chosen SPI pins
+SPICLK = 16  # BOARD 36
+SPIMISO = 19  # BOARD 35
+SPIMOSI = 20  # BOARD 38
+SPICS = 25  # BOARD 22
+ 
+# set up the SPI interface pins
+gpio.setup([SPIMOSI, SPICLK, SPICS], gpio.OUT)
+gpio.setup(SPIMISO, gpio.IN)
 
 
 # 10k trim pot connected to adc #0
@@ -43,33 +42,33 @@ def connectionStatus(client, userdata, flags, rc):
 def readadc(adcnum, clockpin, mosipin, misopin, cspin):
         if ((adcnum > 7) or (adcnum < 0)):
                 return -1
-        GPIO.output(cspin, True)
+        gpio.output(cspin, True)
  
-        GPIO.output(clockpin, False)  # start clock low
-        GPIO.output(cspin, False)     # bring CS low
+        gpio.output(clockpin, False)  # start clock low
+        gpio.output(cspin, False)     # bring CS low
  
         commandout = adcnum
         commandout |= 0x18  # start bit + single-ended bit
         commandout <<= 3    # we only need to send 5 bits here
         for i in range(5):
                 if (commandout & 0x80):
-                        GPIO.output(mosipin, True)
+                        gpio.output(mosipin, True)
                 else:
-                        GPIO.output(mosipin, False)
+                        gpio.output(mosipin, False)
                 commandout <<= 1
-                GPIO.output(clockpin, True)
-                GPIO.output(clockpin, False)
+                gpio.output(clockpin, True)
+                gpio.output(clockpin, False)
  
         adcout = 0
         # read in one empty bit, one null bit and 10 ADC bits
         for i in range(12):
-                GPIO.output(clockpin, True)
-                GPIO.output(clockpin, False)
+                gpio.output(clockpin, True)
+                gpio.output(clockpin, False)
                 adcout <<= 1
-                if (GPIO.input(misopin)):
+                if (gpio.input(misopin)):
                         adcout |= 0x1
  
-        GPIO.output(cspin, True)
+        gpio.output(cspin, True)
         
         adcout >>= 1       # first bit is 'null' so drop it
         return adcout
@@ -85,15 +84,15 @@ def messageDecoder(client, userdata, msg):
 	
 	if message == "poll":
 		current_adc = readadc(potentiometer_adc, SPICLK, SPIMOSI, SPIMISO, SPICS)
-		trimmed_val = int(trim_pot/10.2)
+		trimmed_val = int(current_adc/10.2)
 		if trimmed_val < 0: 
 			trimmed_val *= -1
 		if trimmed_val > 100: 
 			trimmed_val %= 100
-		mqqtClient.publish("rpi/ios", trimmed_val)
+		mqttClient.publish("rpi/ios", trimmed_val)
 		pwm_LED.ChangeDutyCycle(trimmed_val)
 
-gpioSetup()
+#gpioSetup()
 
 clientName = "RPI"
 serverAddress = "192.168.1.6"
