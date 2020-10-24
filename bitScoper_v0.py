@@ -6,8 +6,23 @@ import RPi.GPIO as gpio
 import threading
 
 def foreground():
-	gpioSetup()
-	gpioSetup()
+	# set pin numbering to broadcom scheme
+	gpio.setmode(gpio.BCM)
+
+	clk1 = 17
+	dt1 = 18
+	clk2 = 22
+	dt2 = 23
+
+	gpio.setup(clk1, gpio.IN, pull_up_down=gpio.PUD_DOWN)
+	gpio.setup(clk2, gpio.IN, pull_up_down=gpio.PUD_DOWN)
+	gpio.setup(dt1, gpio.IN, pull_up_down=gpio.PUD_DOWN)
+	gpio.setup(dt2, gpio.IN, pull_up_down=gpio.PUD_DOWN)
+
+	counter1 = 0
+	counter2 = 0
+	clk1LastState = gpio.input(clk1)
+	clk2LastState = gpio.input(clk2)
 
 	clientName = "RPI"
 	serverAddress = "192.168.1.6"
@@ -32,24 +47,6 @@ def background():
 		mqttClient.publish("rpi/ios", (enc1, enc2))
 		sleep(.01)
 
-def gpioSetup():
-	# set pin numbering to broadcom scheme
-        gpio.setmode(gpio.BCM)
-
-        clk1 = 17
-        dt1 = 18
-        clk2 = 22
-        dt2 = 23
-
-        gpio.setup(clk1, gpio.IN, pull_up_down=gpio.PUD_DOWN)
-        gpio.setup(clk2, gpio.IN, pull_up_down=gpio.PUD_DOWN)
-        gpio.setup(dt1, gpio.IN, pull_up_down=gpio.PUD_DOWN)
-        gpio.setup(dt2, gpio.IN, pull_up_down=gpio.PUD_DOWN)
-
-        counter1 = 0
-        counter2 = 0
-        clk1LastState = gpio.input(clk1)
-        clk2LastState = gpio.input(clk2)
 
 # Execute when a connection has been established to the MQTT server
 def connectionStatus(client, userdata, flags, rc):
