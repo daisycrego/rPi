@@ -5,14 +5,21 @@ from time import sleep
 import RPi.GPIO as gpio
 import threading
 
+clk1 = 17
+dt1 = 18
+clk2 = 22
+dt2 = 23
+counter1 = 0
+counter2 = 0
+clk1LastState = None
+clk2LastState = None
+clientName = "RPI"
+serverAddress = "192.168.1.6"
+mqttClient = None
+
 def foreground():
 	# set pin numbering to broadcom scheme
 	gpio.setmode(gpio.BCM)
-
-	clk1 = 17
-	dt1 = 18
-	clk2 = 22
-	dt2 = 23
 
 	gpio.setup(clk1, gpio.IN, pull_up_down=gpio.PUD_DOWN)
 	gpio.setup(clk2, gpio.IN, pull_up_down=gpio.PUD_DOWN)
@@ -23,9 +30,6 @@ def foreground():
 	counter2 = 0
 	clk1LastState = gpio.input(clk1)
 	clk2LastState = gpio.input(clk2)
-
-	clientName = "RPI"
-	serverAddress = "192.168.1.6"
 
 	# Instantiate eclipse pago as mqttclient
 	mqttClient = mqtt.Client(clientName)
