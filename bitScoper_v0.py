@@ -11,8 +11,6 @@ clk2 = 22
 dt2 = 23
 counter1 = 0
 counter2 = 0
-clk1LastState = None
-clk2LastState = None
 clientName = "RPI"
 serverAddress = "192.168.1.6"
 mqttClient = None
@@ -25,13 +23,26 @@ gpio.setup(clk2, gpio.IN, pull_up_down=gpio.PUD_DOWN)
 gpio.setup(dt1, gpio.IN, pull_up_down=gpio.PUD_DOWN)
 gpio.setup(dt2, gpio.IN, pull_up_down=gpio.PUD_DOWN)
 
-counter1 = 0
-counter2 = 0
 clk1LastState = gpio.input(clk1)
 clk2LastState = gpio.input(clk2)
 
 # Instantiate eclipse pago as mqttclient
 mqttClient = mqtt.Client(clientName)
+
+
+# Execute when a connection has been established to the MQTT server
+def connectionStatus(client, userdata, flags, rc):
+	mqttClient.subscribe("rpi/gpio")
+
+def messageDecoder(client, userdata, msg):
+        # Decode message from topic
+        message = msg.payload.decode(encoding='UTF-8')
+	if message == "poll":
+		enc1, enc2 = read_encoders()
+		mqttClient.publish("rpi/ios", (enc1, enc2))
+	else:
+        	print("Unknown message: {}".format(message))
+
 
 # set calling functions on mqttclient
 mqttClient.on_connect = connectionStatus
@@ -49,20 +60,6 @@ def background():
 		enc1, enc2 = read_encoders()
 		mqttClient.publish("rpi/ios", (enc1, enc2))
 		sleep(.01)
-
-
-# Execute when a connection has been established to the MQTT server
-def connectionStatus(client, userdata, flags, rc):
-	mqttClient.subscribe("rpi/gpio")
-
-def messageDecoder(client, userdata, msg):
-        # Decode message from topic
-        message = msg.payload.decode(encoding='UTF-8')
-	if message == "poll":
-		enc1, enc2 = read_encoders()
-		mqttClient.publish("rpi/ios", (enc1, enc2))
-	else:
-        	print("Unknown message: {}".format(message))
 
 def read_encoders():
 	clkState1 = gpio.input(clk1)
