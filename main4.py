@@ -5,33 +5,53 @@ import paho.mqtt.client as mqtt
 import RPi.GPIO as gpio
 import time
 from time import sleep
-
+import threading
+gpio.setmode(gpio.BCM)
 # init LED pwm
 LED = 17 
-
-	
-# set pin numbering to broadcom scheme
-gpio.setmode(gpio.BCM)
-
 gpio.setup(LED, gpio.OUT)
-
-pwm_LED = gpio.PWM(LED, 100)
-pwm_LED.start(0)
-
 # freely chosen SPI pins
 SPICLK = 16  # BOARD 36
 SPIMISO = 19  # BOARD 35
 SPIMOSI = 20  # BOARD 38
 SPICS = 25  # BOARD 22
- 
-# set up the SPI interface pins
-gpio.setup([SPIMOSI, SPICLK, SPICS], gpio.OUT)
-gpio.setup(SPIMISO, gpio.IN)
-
-
 # 10k trim pot connected to adc #0
-potentiometer_adc = 0;
+potentiometer_adc = 0
+clientName = "RPI"
+serverAddress = "192.168.1.6"
+pwm_LED = gpio.PWM(LED, 100)
+# Instantiate eclipse pago as mqttclient
+mqttClient = mqtt.Client(clientName)
 
+def foreground():
+	# set pin numbering to broadcom scheme
+	
+	
+	pwm_LED.start(0)
+
+	# set up the SPI interface pins
+	gpio.setup([SPIMOSI, SPICLK, SPICS], gpio.OUT)
+	gpio.setup(SPIMISO, gpio.IN)
+
+	# set calling functions on mqttclient
+	mqttClient.on_connect = connectionStatus
+	mqttClient.on_message = messageDecoder
+
+	# connect client to server
+	mqttClient.connect(serverAddress)
+
+	# monitor client activity forever
+	mqttClient.loop_forever()
+
+def background():
+	while True:
+		current_adc = readadc(potentiometer_adc, SPICLK, SPIMOSI, SPIMISO, SPICS)
+		trimmed_val = int(current_adc/10.2)
+		if trimmed_val < 0: 
+			trimmed_val *= -1
+		if trimmed_val > 100: 
+			trimmed_val %= 100
+		mqttClient.publish("rpi/ios", trimmed_val)
 
 # Execute when a connection has been established to the MQTT server
 def connectionStatus(client, userdata, flags, rc):
@@ -89,23 +109,11 @@ def messageDecoder(client, userdata, msg):
 			trimmed_val *= -1
 		if trimmed_val > 100: 
 			trimmed_val %= 100
-		mqttClient.publish("rpi/ios", trimmed_val)
+		mqttClient.publish("rpi/ios", int(current_adc/10.2))
 		pwm_LED.ChangeDutyCycle(trimmed_val)
 
-#gpioSetup()
+f = threading.Thread(name="foreground", target=foreground)
+b = threading.Thread(name="background", target=background)
 
-clientName = "RPI"
-serverAddress = "192.168.1.6"
-
-# Instantiate eclipse pago as mqttclient
-mqttClient = mqtt.Client(clientName)
-
-# set calling functions on mqttclient
-mqttClient.on_connect = connectionStatus
-mqttClient.on_message = messageDecoder
-
-# connect client to server
-mqttClient.connect(serverAddress)
-
-# monitor client activity forever
-mqttClient.loop_forever()
+f.start()
+b.start()
