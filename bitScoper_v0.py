@@ -4,33 +4,14 @@ import paho.mqtt.client as mqtt
 from time import sleep
 import RPi.GPIO as gpio
 import threading
+import json
 
-clk1 = 17
-dt1 = 18
-clk2 = 22
-dt2 = 23
-counter1 = 0
-counter2 = 0
-clkState1 = 0
-clkState2 = 0
 clientName = "RPI"
 serverAddress = "192.168.1.6"
 mqttClient = None
 
-# set pin numbering to broadcom scheme
-gpio.setmode(gpio.BCM)
-
-gpio.setup(clk1, gpio.IN, pull_up_down=gpio.PUD_DOWN)
-gpio.setup(clk2, gpio.IN, pull_up_down=gpio.PUD_DOWN)
-gpio.setup(dt1, gpio.IN, pull_up_down=gpio.PUD_DOWN)
-gpio.setup(dt2, gpio.IN, pull_up_down=gpio.PUD_DOWN)
-
-clk1LastState = gpio.input(clk1)
-clk2LastState = gpio.input(clk2)
-
 # Instantiate eclipse pago as mqttclient
 mqttClient = mqtt.Client(clientName)
-
 
 # Execute when a connection has been established to the MQTT server
 def connectionStatus(client, userdata, flags, rc):
@@ -39,12 +20,7 @@ def connectionStatus(client, userdata, flags, rc):
 def messageDecoder(client, userdata, msg):
         # Decode message from topic
         message = msg.payload.decode(encoding='UTF-8')
-	if message == "poll":
-		enc1, enc2 = read_encoders()
-		mqttClient.publish("rpi/ios", (enc1, enc2))
-	else:
-        	print("Unknown message: {}".format(message))
-
+	print("Unknown message: {}".format(message))
 
 # set calling functions on mqttclient
 mqttClient.on_connect = connectionStatus
@@ -58,29 +34,54 @@ def foreground():
 	mqttClient.loop_forever()
 
 def background():
-	while True: 
-		enc1, enc2 = read_encoders()
-		mqttClient.publish("rpi/ios", (enc1, enc2))
-		sleep(.01)
+	clk1 = 17
+	dt1 = 18
+	clk2 = 22
+	dt2 = 23
+	counter1 = 0
+	counter2 = 0
+	clkState1 = 0
+	clkState2 = 0
 
-def read_encoders():
-	clkState1 = gpio.input(clk1)
-	clkState2 = gpio.input(clk2)
-	dtState1 = gpio.input(dt1)
-	dtState2 = gpio.input(dt2)
-	if clkState1 != clk1LastState:
-		if dtState1 != clkState1:
-			counter1 += 1
-		else:
-			counter1 -= 1
-	if clkState2 != clk2LastState:
-		if dtState2 != clkState2:
-			counter2 += 1
-		else:
-			counter2 -= 1
-	clk1LastState = clkState1
-	clk2LastState = clkState2
-	return (counter1, counter2)
+	# set pin numbering to broadcom scheme
+	gpio.setmode(gpio.BCM)
+
+	gpio.setup(clk1, gpio.IN, pull_up_down=gpio.PUD_DOWN)
+	gpio.setup(clk2, gpio.IN, pull_up_down=gpio.PUD_DOWN)
+	gpio.setup(dt1, gpio.IN, pull_up_down=gpio.PUD_DOWN)
+	gpio.setup(dt2, gpio.IN, pull_up_down=gpio.PUD_DOWN)
+
+	clk1LastState = gpio.input(clk1)
+	clk2LastState = gpio.input(clk2)
+
+	while True:
+		clkState1 = gpio.input(clk1)
+        	clkState2 = gpio.input(clk2)
+        	dtState1 = gpio.input(dt1)
+        	dtState2 = gpio.input(dt2)
+        	if clkState1 != clk1LastState:
+                	if dtState1 != clkState1:
+                        	counter1 += 1
+                	else:
+                        	counter1 -= 1
+        	if clkState2 != clk2LastState:
+                	if dtState2 != clkState2:
+                        	counter2 += 1
+                	else:
+                        	counter2 -= 1
+        	clk1LastState = clkState1
+        	clk2LastState = clkState2
+
+		dials = {
+			"dial1": counter1,
+			"dial2": counter2
+		}
+
+		jsonDials = json.dumps(dials)
+		print(jsonDials)
+
+		mqttClient.publish("rpi/ios", jsonDials)
+		sleep(.01)
 
 f = threading.Thread(name="foreground", target=foreground)
 b = threading.Thread(name="background", target=background)
