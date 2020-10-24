@@ -3,6 +3,34 @@
 import paho.mqtt.client as mqtt
 from time import sleep
 import RPi.GPIO as gpio
+import threading
+
+def foreground():
+	gpioSetup()
+	gpioSetup()
+
+	clientName = "RPI"
+	serverAddress = "192.168.1.6"
+
+	# Instantiate eclipse pago as mqttclient
+	mqttClient = mqtt.Client(clientName)
+
+	# set calling functions on mqttclient
+	mqttClient.on_connect = connectionStatus
+	mqttClient.on_message = messageDecoder
+
+	# connect client to server
+	mqttClient.connect(serverAddress)
+
+	# monitor client activity forever
+	mqttClient.loop_forever()
+
+
+def background():
+	while True: 
+		enc1, enc2 = read_encoders()
+		mqttClient.publish("rpi/ios", (enc1, enc2))
+		sleep(.01)
 
 def gpioSetup():
 	# set pin numbering to broadcom scheme
@@ -55,21 +83,8 @@ def read_encoders():
 	clk2LastState = clkState2
 	return (counter1, counter2)
 
-gpioSetup()
+f = threading.Thread(name="foreground", target=foreground)
+b = threading.Thread(name="background", target=background)
 
-clientName = "RPI"
-serverAddress = "192.168.1.6"
-
-# Instantiate eclipse pago as mqttclient
-mqttClient = mqtt.Client(clientName)
-
-# set calling functions on mqttclient
-mqttClient.on_connect = connectionStatus
-mqttClient.on_message = messageDecoder
-
-# connect client to server
-mqttClient.connect(serverAddress)
-
-# monitor client activity forever
-mqttClient.loop_forever()
-
+f.start()
+b.start()
