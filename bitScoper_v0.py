@@ -17,33 +17,32 @@ clientName = "RPI"
 serverAddress = "192.168.1.6"
 mqttClient = None
 
+# set pin numbering to broadcom scheme
+gpio.setmode(gpio.BCM)
+
+gpio.setup(clk1, gpio.IN, pull_up_down=gpio.PUD_DOWN)
+gpio.setup(clk2, gpio.IN, pull_up_down=gpio.PUD_DOWN)
+gpio.setup(dt1, gpio.IN, pull_up_down=gpio.PUD_DOWN)
+gpio.setup(dt2, gpio.IN, pull_up_down=gpio.PUD_DOWN)
+
+counter1 = 0
+counter2 = 0
+clk1LastState = gpio.input(clk1)
+clk2LastState = gpio.input(clk2)
+
+# Instantiate eclipse pago as mqttclient
+mqttClient = mqtt.Client(clientName)
+
+# set calling functions on mqttclient
+mqttClient.on_connect = connectionStatus
+mqttClient.on_message = messageDecoder
+
+# connect client to server
+mqttClient.connect(serverAddress)
+
 def foreground():
-	# set pin numbering to broadcom scheme
-	gpio.setmode(gpio.BCM)
-
-	gpio.setup(clk1, gpio.IN, pull_up_down=gpio.PUD_DOWN)
-	gpio.setup(clk2, gpio.IN, pull_up_down=gpio.PUD_DOWN)
-	gpio.setup(dt1, gpio.IN, pull_up_down=gpio.PUD_DOWN)
-	gpio.setup(dt2, gpio.IN, pull_up_down=gpio.PUD_DOWN)
-
-	counter1 = 0
-	counter2 = 0
-	clk1LastState = gpio.input(clk1)
-	clk2LastState = gpio.input(clk2)
-
-	# Instantiate eclipse pago as mqttclient
-	mqttClient = mqtt.Client(clientName)
-
-	# set calling functions on mqttclient
-	mqttClient.on_connect = connectionStatus
-	mqttClient.on_message = messageDecoder
-
-	# connect client to server
-	mqttClient.connect(serverAddress)
-
 	# monitor client activity forever
 	mqttClient.loop_forever()
-
 
 def background():
 	while True: 
